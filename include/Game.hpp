@@ -1,28 +1,36 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include "Entity/Entity.hpp"
-#include "Entity/AimEntity.hpp"
 #include <memory>
+#include "Entity/AimEntity.hpp"
+#include "Entity/SliceEntity.hpp"
 
 using namespace std;
 using namespace sf;
 
+#define MAX_AIMENTITIES 5 
+
+#define MAX_SLICEENTITIES 50
+
 class Game
 {
 private:
-    sf::RenderWindow window;
-    vector<unique_ptr<Entity>> entities;
+    RenderWindow window;
+    vector<unique_ptr<AimEntity>> entities;
+    vector<unique_ptr<SliceEntity>> sliceEntities;
 
-    const int MAX_ENTITIES = 3;
 
-public:
-    Game();
-    void run();
+    // Variáveis para controle de spawn com delay
+    float spawnTimer;
+    float nextSpawnDelay;
 
-private:
     void processEvents();
     void update();
     void render();
     void spawnEntity();
+    void sliceEntity();
+
+public:
+    Game();
+    void run();
 };
