@@ -1,31 +1,30 @@
 #pragma once
+#include<SFML/Graphics.hpp>
 #include "Entity.hpp"
-#include <SFML/Graphics.hpp>
 
 using namespace sf;
 
-class AimEntity : public Entity
-{
-private:
-    sf::CircleShape shape;
-    
-    sf::Vector2f P0; 
-    sf::Vector2f P1; 
-    sf::Vector2f P2; 
+class SliceEntity : public Entity{
+    private:
+    CircleShape shape;
+    float radius;
 
-    float t;    
-    float speed; 
-    bool dead;  
 
-public:
-    AimEntity(sf::Vector2f startPos, sf::Vector2u screenSize);
+    public:
+    SliceEntity();
 
     void update(float dt) override;
     void draw(sf::RenderWindow &window) const override;
     void render(sf::RenderWindow &window) override;
+    void setPosition();
+    void setPosition(const Vector2f pos);
+    void setPosition(float x, float y);
+    Vector2f getPosition();
+    void setRad(float radius);
+    float getRad();
 
     bool isClicked(const sf::Vector2f &mousePos) const override;
     sf::FloatRect getBounds() const override;
     bool isDead() const override;
-    void setDead(Vector2f boundPos);
+
 };

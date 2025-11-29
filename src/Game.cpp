@@ -4,6 +4,10 @@
 #include <algorithm>
 #include <random>
 
+
+using namespace sf;
+
+
 static float randomFloat(float min, float max)
 {
     static std::random_device rd;
@@ -21,8 +25,15 @@ Game::Game()
     nextSpawnDelay = 0.5f; // Delay inicial curto
 
     // Inicializa com algumas entidades ou deixe vazio para o timer preencher
-    for (int i = 0; i < MAX_ENTITIES; i++)
+
+    for (int i = 0; i < MAX_AIMENTITIES; i++){
         spawnEntity();
+    };
+
+    for( int i = 0; i < MAX_SLICEENTITIES; i++){
+        sliceEntity();
+    };
+
 }
 
 void Game::run()
@@ -51,12 +62,14 @@ void Game::processEvents()
             // Remove se clicar
             entities.erase(
                 std::remove_if(entities.begin(), entities.end(),
-                               [&](const std::unique_ptr<Entity> &e)
+                               [&](const std::unique_ptr<AimEntity> &e)
                                {
                                    return e->isClicked(clickPos);
                                }),
                 entities.end());
         }
+
+         
     }
 }
 
@@ -74,7 +87,9 @@ void Game::update()
     // 2. Remove entidades mortas (que completaram o trajeto)
     entities.erase(
         std::remove_if(entities.begin(), entities.end(),
-                       [](const std::unique_ptr<Entity> &e)
+
+                       [](const std::unique_ptr<AimEntity> &e)
+
                        {
                            return e->isDead();
                        }),
@@ -82,7 +97,9 @@ void Game::update()
 
     // 3. SPAWN COM DELAY
     // Se há espaço para mais entidades...
-    if (entities.size() < MAX_ENTITIES)
+
+    if (entities.size() < MAX_AIMENTITIES)
+
     {
         spawnTimer += dt; // Conta o tempo
 
@@ -96,6 +113,57 @@ void Game::update()
             nextSpawnDelay = randomFloat(0.5f, 2.f); 
         }
     }
+
+    if (Mouse::isButtonPressed(Mouse::Left))
+            {
+                
+                Vector2i originpixel = Mouse::getPosition(window);
+                Vector2f mousepos = window.mapPixelToCoords(originpixel);
+
+                float maxDistance = sliceEntities.empty() ? 20.f : sliceEntities[0]->getRad() * 2.f;
+
+                for(size_t i = 0; i < sliceEntities.size(); ++i)
+        {
+            SliceEntity* currentSlice = sliceEntities[i].get();
+
+            if (i == 0)
+            {
+                currentSlice->setPosition(mousepos);
+            }
+            else
+            {
+            
+                SliceEntity* prevSlice = sliceEntities[i-1].get();
+
+                sf::Vector2f posAnterior = prevSlice->getPosition();
+                sf::Vector2f posAtual = currentSlice->getPosition();
+                
+                float dx = posAtual.x - posAnterior.x;
+                float dy = posAtual.y - posAnterior.y;
+
+                float dist = std::sqrt(dx*dx + dy*dy); 
+
+                
+                if (dist > maxDistance)
+                {
+                
+                    dx /= dist;
+                    dy /= dist;
+
+            
+                    float novoX = posAnterior.x + dx * maxDistance;
+                    float novoY = posAnterior.y + dy * maxDistance;
+                    
+                    currentSlice->setPosition(novoX, novoY);
+                }
+                
+            }
+        }
+            
+            }
+
+   
+
 }
 
 void Game::render()
@@ -103,6 +171,12 @@ void Game::render()
     window.clear();
     for (auto &e : entities)
         e->render(window);
+
+
+    for (auto &s:sliceEntities)
+        s->render(window);
+
+
     window.display();
 }
 
@@ -114,4 +188,12 @@ void Game::spawnEntity()
     
     sf::Vector2f startPos(x, (float)size.y);
     entities.push_back(std::make_unique<AimEntity>(startPos, size));
+
+}
+
+
+
+void Game::sliceEntity(){
+    sliceEntities.push_back(make_unique<SliceEntity>());
+
 }
