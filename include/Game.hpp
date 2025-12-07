@@ -18,11 +18,14 @@ private:
     RenderWindow window;
     vector<unique_ptr<AimEntity>> entities;
     vector<unique_ptr<SliceEntity>> sliceEntities;
+    Clock clkSliceSp;
+    Clock clkSliceDlt;
 
 
     // Variáveis para controle de spawn com delay
     float spawnTimer;
     float nextSpawnDelay;
+    bool isMouseMoved;
 
     void processEvents();
     void update();

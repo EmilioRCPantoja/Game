@@ -18,18 +18,17 @@ Game::Game()
     : window(sf::VideoMode(900, 550), "Game", sf::Style::Close | sf::Style::Titlebar)
 {
     window.setFramerateLimit(60);
+     
 
     spawnTimer = 0.f;
     nextSpawnDelay = 0.5f; // Delay inicial curto
-
+    isMouseMoved = false;
     // Inicializa com algumas entidades ou deixe vazio para o timer preencher
     for (int i = 0; i < MAX_AIMENTITIES; i++){
         spawnEntity();
     };
 
-    for( int i = 0; i < MAX_SLICEENTITIES; i++){
-        sliceEntity();
-    };
+    sliceEntity();
 
 }
 
@@ -45,6 +44,8 @@ void Game::run()
 
 void Game::processEvents()
 {
+
+
     sf::Event event;
     while (window.pollEvent(event))
     {
@@ -66,7 +67,21 @@ void Game::processEvents()
                 entities.end());
         }
 
-         
+        if(event.type == Event::MouseMoved && Mouse::isButtonPressed(Mouse::Left)){
+            isMouseMoved = true;
+        }
+        if(!(event.type == Event::MouseMoved && Mouse::isButtonPressed(Mouse::Left))){
+            isMouseMoved = false;
+        }
+
+        if(isMouseMoved && clkSliceSp.getElapsedTime().asSeconds() >= 0.01 && sliceEntities.size() <= 50){
+            
+            sliceEntity();
+    
+            clkSliceSp.restart();
+        }
+
+        
     }
 }
 
@@ -74,6 +89,12 @@ void Game::update()
 {
     static sf::Clock clock;
     float dt = clock.restart().asSeconds();
+    
+    if(clkSliceDlt.getElapsedTime().asSeconds() >= 0.015 && isMouseMoved == false && sliceEntities.size() > 1){
+        sliceEntities.pop_back();
+        clkSliceDlt.restart();
+    }
+
 
     // 1. Atualiza Posição
     for (auto &e : entities)
@@ -107,29 +128,26 @@ void Game::update()
         }
     }
 
-    if (Mouse::isButtonPressed(Mouse::Left))
-            {
+    if (isMouseMoved){
+
                 
-                Vector2i originpixel = Mouse::getPosition(window);
-                Vector2f mousepos = window.mapPixelToCoords(originpixel);
+        Vector2i originpixel = Mouse::getPosition(window);
+        Vector2f mousepos = window.mapPixelToCoords(originpixel);
 
-                float maxDistance = sliceEntities.empty() ? 20.f : sliceEntities[0]->getRad() * 2.f;
+        float maxDistance = sliceEntities.empty() ? 20.f : sliceEntities[0]->getRad() * 2.f;
 
-                for(size_t i = 0; i < sliceEntities.size(); ++i)
-        {
+        for(size_t i = 0; i < sliceEntities.size(); ++i){
             SliceEntity* currentSlice = sliceEntities[i].get();
 
-            if (i == 0)
-            {
+            if (i == 0){
                 currentSlice->setPosition(mousepos);
             }
-            else
-            {
+            else{
             
                 SliceEntity* prevSlice = sliceEntities[i-1].get();
 
-                sf::Vector2f posAnterior = prevSlice->getPosition();
-                sf::Vector2f posAtual = currentSlice->getPosition();
+                Vector2f posAnterior = prevSlice->getPosition();
+                Vector2f posAtual = currentSlice->getPosition();
                 
                 float dx = posAtual.x - posAnterior.x;
                 float dy = posAtual.y - posAnterior.y;
@@ -137,8 +155,7 @@ void Game::update()
                 float dist = std::sqrt(dx*dx + dy*dy); 
 
                 
-                if (dist > maxDistance)
-                {
+                if (dist > maxDistance){
                 
                     dx /= dist;
                     dy /= dist;
@@ -153,8 +170,9 @@ void Game::update()
             }
         }
             
-            }
+    }
 
+    
    
 }
 
