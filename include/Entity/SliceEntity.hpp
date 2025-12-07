@@ -22,7 +22,7 @@ class SliceEntity : public Entity{
     Vector2f getPosition();
     void setRad(float radius);
     float getRad();
-
+    FloatRect getBounds();
     bool isClicked(const sf::Vector2f &mousePos) const override;
     sf::FloatRect getBounds() const override;
     bool isDead() const override;

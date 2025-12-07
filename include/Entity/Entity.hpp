@@ -10,6 +10,7 @@ public:
     virtual void render(sf::RenderWindow &window) = 0;
     virtual void draw(sf::RenderWindow &window) const = 0;
     
+    
     // Métodos de colisão e limites
     virtual bool isClicked(const sf::Vector2f &mousePos) const = 0;
     virtual sf::FloatRect getBounds() const = 0;

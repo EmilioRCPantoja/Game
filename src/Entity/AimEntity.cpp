@@ -102,6 +102,13 @@ sf::FloatRect AimEntity::getBounds() const
     return shape.getGlobalBounds();
 }
 
+void AimEntity::setDead(Vector2f boundPos) {
+    FloatRect thisBound = shape.getGlobalBounds();
+    if(thisBound.contains(boundPos)){
+        dead = true;
+    }
+}
+
 bool AimEntity::isDead() const
 {
     return dead;

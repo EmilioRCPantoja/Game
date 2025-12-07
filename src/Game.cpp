@@ -74,7 +74,7 @@ void Game::processEvents()
             isMouseMoved = false;
         }
 
-        if(isMouseMoved && clkSliceSp.getElapsedTime().asSeconds() >= 0.01 && sliceEntities.size() <= 50){
+        if(isMouseMoved && clkSliceSp.getElapsedTime().asSeconds() >= 0.005 && sliceEntities.size() <= 50){
             
             sliceEntity();
     
@@ -90,11 +90,28 @@ void Game::update()
     static sf::Clock clock;
     float dt = clock.restart().asSeconds();
     
-    if(clkSliceDlt.getElapsedTime().asSeconds() >= 0.015 && isMouseMoved == false && sliceEntities.size() > 1){
+    if(clkSliceDlt.getElapsedTime().asSeconds() >= 0.001 && isMouseMoved == false && sliceEntities.size() > 1){
         sliceEntities.pop_back();
         clkSliceDlt.restart();
     }
 
+    for(auto &s : sliceEntities){
+
+        if(s == sliceEntities.front()){
+            for(auto &e : entities){
+            e.get()->setDead(s.get()->getPosition());
+            }
+        }
+        entities.erase(
+                std::remove_if(entities.begin(), entities.end(),
+                               [&](const std::unique_ptr<AimEntity> &e)
+                               {
+                                   return e->isDead();
+                               }),
+                entities.end());
+
+        
+    }
 
     // 1. Atualiza Posição
     for (auto &e : entities)

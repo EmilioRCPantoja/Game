@@ -2,11 +2,12 @@
 #include "Entity.hpp"
 #include <SFML/Graphics.hpp>
 
+using namespace sf;
+
 class AimEntity : public Entity
 {
 private:
     sf::CircleShape shape;
-
     
     sf::Vector2f P0; 
     sf::Vector2f P1; 
@@ -26,4 +27,5 @@ public:
     bool isClicked(const sf::Vector2f &mousePos) const override;
     sf::FloatRect getBounds() const override;
     bool isDead() const override;
+    void setDead(Vector2f boundPos);
 };
