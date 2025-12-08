@@ -1,6 +1,5 @@
 #include "Entity/BombEntity.hpp"
 #include <cmath>
-#include <cstdlib>
 
 BombEntity::BombEntity(sf::Vector2f startPos, sf::Vector2u screenSize)
     : AimEntity(startPos, screenSize)
@@ -18,5 +17,5 @@ bool BombEntity::isClicked(const sf::Vector2f &mousePos) const
 void BombEntity::setDead(sf::Vector2f boundPos)
 {
     if (shape.getGlobalBounds().contains(boundPos))
-        std::exit(0);
+        dead = true;
 }

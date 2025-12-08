@@ -1,5 +1,4 @@
 #include "Game.hpp"
-#include <iostream>
 #include <algorithm>
 #include <random>
 #include <cmath>
@@ -15,7 +14,7 @@ static float randomFloat(float min, float max)
 }
 
 Game::Game()
-    : window(sf::VideoMode(900, 550), "Game", sf::Style::Close | sf::Style::Titlebar)
+    : window(sf::VideoMode(900, 550), "Game")
 {
     window.setFramerateLimit(60);
 
@@ -23,9 +22,34 @@ Game::Game()
     nextSpawnDelay = 0.5f;
     isMouseMovedPressed = false;
 
-    for (int i = 0; i < MAX_ENTITIES; i++){
+    font.loadFromFile("assets/Montserrat-Regular.ttf");
+
+    scoreText.setFont(font);
+    scoreText.setCharacterSize(20);
+    scoreText.setFillColor(Color::White);
+    scoreText.setPosition(10.f, 10.f);
+
+    livesText.setFont(font);
+    livesText.setCharacterSize(20);
+    livesText.setFillColor(Color::Red);
+    livesText.setPosition(10.f, 40.f);
+
+    gameOver = false;
+
+    gameOverText.setString("GAME OVER");
+    gameOverText.setCharacterSize(48);
+    gameOverText.setFillColor(sf::Color::Red);
+    gameOverText.setFont(font);
+
+    sf::FloatRect bounds = gameOverText.getLocalBounds();
+    gameOverText.setOrigin(bounds.left + bounds.width / 2.f,
+                           bounds.top + bounds.height / 2.f);
+
+    gameOverText.setPosition(window.getSize().x / 2.f,
+                             window.getSize().y / 2.f);
+
+    for (int i = 0; i < MAX_ENTITIES; i++)
         spawnEntity();
-    };
 
     sliceEntity();
 }
@@ -45,31 +69,26 @@ void Game::processEvents()
     sf::Event event;
     while (window.pollEvent(event))
     {
-        if (event.type == sf::Event::Closed)
+        if (gameOver)
+        {
+            if (event.type == sf::Event::Closed)
+                window.close();
+
+            continue;
+        }
+
+        if (event.type == Event::Closed)
             window.close();
 
-        if (event.type == sf::Event::MouseButtonPressed &&
-            event.mouseButton.button == sf::Mouse::Left)
-        {
-            sf::Vector2f clickPos((float)event.mouseButton.x, (float)event.mouseButton.y);
-
-            entities.erase(
-                std::remove_if(entities.begin(), entities.end(),
-                               [&](const std::unique_ptr<AimEntity> &e)
-                               {
-                                   return e->isClicked(clickPos);
-                               }),
-                entities.end());
-        }
-
-        if(event.type == Event::MouseMoved && Mouse::isButtonPressed(Mouse::Left)){
+        if (event.type == Event::MouseMoved && Mouse::isButtonPressed(Mouse::Left))
             isMouseMovedPressed = true;
-        }
-        if(!(event.type == Event::MouseMoved && Mouse::isButtonPressed(Mouse::Left))){
+        else
             isMouseMovedPressed = false;
-        }
 
-        if(isMouseMovedPressed && clkSliceSp.getElapsedTime().asSeconds() >= 0.005 && sliceEntities.size() <= 50){
+        if (!gameOver && isMouseMovedPressed &&
+            clkSliceSp.getElapsedTime().asSeconds() >= 0.005f &&
+            sliceEntities.size() <= MAX_SLICEENTITIES)
+        {
             sliceEntity();
             clkSliceSp.restart();
         }
@@ -78,91 +97,130 @@ void Game::processEvents()
 
 void Game::update()
 {
-    static sf::Clock clock;
+    static Clock clock;
     float dt = clock.restart().asSeconds();
 
-    if(clkSliceDlt.getElapsedTime().asSeconds() >= 0.001 && isMouseMovedPressed == false  && sliceEntities.size() > 1){
+    if (gameOver)
+    {
+        scoreText.setString("Score: " + std::to_string(state.getScore()));
+        livesText.setString("Lives: " + std::to_string(state.getLives()));
+        return;
+    }
+
+    if (clkSliceDlt.getElapsedTime().asSeconds() >= 0.005f &&
+        !isMouseMovedPressed && sliceEntities.size() > 1)
+    {
         sliceEntities.pop_back();
         clkSliceDlt.restart();
     }
 
-    for(auto &s : sliceEntities){
+    for (auto &s : sliceEntities)
+    {
+        if (s == sliceEntities.front())
+        {
+            for (auto &e : entities)
+            {
+                if (auto f = dynamic_cast<FruitEntity *>(e.get()))
+                {
+                    if (f->getBounds().contains(s->getPosition()))
+                    {
+                        f->setDead(s->getPosition());
+                        state.addScore(10);
+                    }
+                }
 
-        if(s == sliceEntities.front()){
-            for(auto &e : entities){
+                if (auto b = dynamic_cast<BombEntity *>(e.get()))
+                {
+                    if (b->getBounds().contains(s->getPosition()))
+                    {
+                        b->setDead(s->getPosition());
+                        state.loseLife();
 
-                if(auto f = dynamic_cast<FruitEntity*>(e.get()))
-                    f->setDead(s->getPosition());
-
-                if(auto b = dynamic_cast<BombEntity*>(e.get()))
-                    b->setDead(s->getPosition());
+                        if (state.isGameOver())
+                        {
+                            gameOver = true;
+                        }
+                    }
+                }
             }
         }
-
-        entities.erase(
-                std::remove_if(entities.begin(), entities.end(),
-                               [&](const std::unique_ptr<AimEntity> &e)
-                               {
-                                   return e->isDead();
-                               }),
-                entities.end());
     }
+
+    entities.erase(
+        std::remove_if(entities.begin(), entities.end(),
+                       [&](const std::unique_ptr<AimEntity> &e)
+                       {
+                           if (!e->isDead())
+                               return false;
+
+                           if (auto f = dynamic_cast<FruitEntity *>(e.get()))
+                           {
+                               if (!f->wasSliced())
+                               {
+                                   state.loseLife();
+
+                                   if (state.isGameOver())
+                                       gameOver = true;
+                               }
+                           }
+
+                           return true;
+                       }),
+        entities.end());
 
     for (auto &e : entities)
-    {
         e->update(dt);
-    }
 
     if (entities.size() < MAX_ENTITIES)
     {
         spawnTimer += dt;
-
         if (spawnTimer >= nextSpawnDelay)
         {
             spawnEntity();
             spawnTimer = 0.f;
-            nextSpawnDelay = randomFloat(0.5f, 2.f); 
+            nextSpawnDelay = randomFloat(0.5f, 2.f);
         }
     }
 
-    if (isMouseMovedPressed){
-
+    if (isMouseMovedPressed)
+    {
         Vector2i originpixel = Mouse::getPosition(window);
         Vector2f mousepos = window.mapPixelToCoords(originpixel);
 
         float maxDistance = sliceEntities.empty() ? 20.f : sliceEntities[0]->getRad() * 2.f;
 
-        for(size_t i = 0; i < sliceEntities.size(); ++i){
-            SliceEntity* currentSlice = sliceEntities[i].get();
+        for (size_t i = 0; i < sliceEntities.size(); ++i)
+        {
+            SliceEntity *currentSlice = sliceEntities[i].get();
 
-            if (i == 0){
+            if (i == 0)
                 currentSlice->setPosition(mousepos);
-            }
-            else{
-
-                SliceEntity* prevSlice = sliceEntities[i-1].get();
+            else
+            {
+                SliceEntity *prevSlice = sliceEntities[i - 1].get();
 
                 Vector2f posAnterior = prevSlice->getPosition();
                 Vector2f posAtual = currentSlice->getPosition();
 
                 float dx = posAtual.x - posAnterior.x;
                 float dy = posAtual.y - posAnterior.y;
+                float dist = std::sqrt(dx * dx + dy * dy);
 
-                float dist = std::sqrt(dx*dx + dy*dy); 
-
-                if (dist > maxDistance){
-
+                if (dist > maxDistance)
+                {
                     dx /= dist;
                     dy /= dist;
 
-                    float novoX = posAnterior.x + dx * maxDistance;
-                    float novoY = posAnterior.y + dy * maxDistance;
-
-                    currentSlice->setPosition(novoX, novoY);
+                    currentSlice->setPosition(
+                        posAnterior.x + dx * maxDistance,
+                        posAnterior.y + dy * maxDistance);
                 }
             }
         }
     }
+
+    scoreText.setString("Score: " + std::to_string(state.getScore()));
+    livesText.setString("Lives: " + std::to_string(state.getLives()));
 }
 
 void Game::render()
@@ -172,18 +230,23 @@ void Game::render()
     for (auto &e : entities)
         e->render(window);
 
-    for (auto &s:sliceEntities)
+    for (auto &s : sliceEntities)
         s->render(window);
+
+    window.draw(scoreText);
+    window.draw(livesText);
+
+    if (gameOver)
+        window.draw(gameOverText);
 
     window.display();
 }
 
 void Game::spawnEntity()
 {
-    sf::Vector2u size = window.getSize();
+    Vector2u size = window.getSize();
     float x = randomFloat(50.f, size.x - 50.f);
-
-    sf::Vector2f startPos(x, (float)size.y);
+    Vector2f startPos(x, (float)size.y);
 
     if (randomFloat(0.f, 1.f) < 0.2f)
         entities.push_back(std::make_unique<BombEntity>(startPos, size));
@@ -191,6 +254,7 @@ void Game::spawnEntity()
         entities.push_back(std::make_unique<FruitEntity>(startPos, size));
 }
 
-void Game::sliceEntity(){
+void Game::sliceEntity()
+{
     sliceEntities.push_back(std::make_unique<SliceEntity>());
 }

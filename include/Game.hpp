@@ -6,6 +6,7 @@
 #include "Entity/FruitEntity.hpp"
 #include "Entity/BombEntity.hpp"
 #include "Entity/SliceEntity.hpp"
+#include "GameState.hpp"
 
 #define MAX_ENTITIES 5
 #define MAX_SLICEENTITIES 50
@@ -24,6 +25,14 @@ private:
     float spawnTimer;
     float nextSpawnDelay;
     bool isMouseMovedPressed;
+
+    GameState state;
+    sf::Font font;
+    sf::Text scoreText;
+    sf::Text livesText;
+    
+    bool gameOver;
+    sf::Text gameOverText;
 
     void processEvents();
     void update();

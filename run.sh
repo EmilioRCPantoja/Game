@@ -3,6 +3,7 @@
 g++ -std=c++17 \
     src/main.cpp \
     src/Game.cpp \
+    src/GameState.cpp \
     src/Entity/AimEntity.cpp \
     src/Entity/FruitEntity.cpp \
     src/Entity/BombEntity.cpp \
