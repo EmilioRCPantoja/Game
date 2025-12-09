@@ -11,6 +11,13 @@
 #define MAX_ENTITIES 5
 #define MAX_SLICEENTITIES 50
 
+enum class ScreenState
+{
+    MENU,
+    PLAYING,
+    GAME_OVER
+};
+
 class Game
 {
 private:
@@ -30,15 +37,24 @@ private:
     sf::Font font;
     sf::Text scoreText;
     sf::Text livesText;
-    
-    bool gameOver;
+
+    ScreenState screenState;
+
+    sf::RectangleShape playButton;
+    sf::Text playText;
+
+    sf::RectangleShape restartButton;
+    sf::Text restartText;
+
     sf::Text gameOverText;
+    sf::Text highScoreText;
 
     void processEvents();
     void update();
     void render();
     void spawnEntity();
     void sliceEntity();
+    void resetGame();
 
 public:
     Game();

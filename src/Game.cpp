@@ -34,19 +34,82 @@ Game::Game()
     livesText.setFillColor(Color::Red);
     livesText.setPosition(10.f, 40.f);
 
-    gameOver = false;
-
     gameOverText.setString("GAME OVER");
     gameOverText.setCharacterSize(48);
-    gameOverText.setFillColor(sf::Color::Red);
+    gameOverText.setFillColor(Color::Red);
     gameOverText.setFont(font);
 
-    sf::FloatRect bounds = gameOverText.getLocalBounds();
-    gameOverText.setOrigin(bounds.left + bounds.width / 2.f,
-                           bounds.top + bounds.height / 2.f);
+    FloatRect bounds = gameOverText.getLocalBounds();
+    gameOverText.setOrigin(
+        bounds.left + bounds.width / 2.f,
+        bounds.top + bounds.height / 2.f
+    );
+    gameOverText.setPosition(
+        window.getSize().x / 2.f,
+        window.getSize().y / 2.f - 120.f
+    );
 
-    gameOverText.setPosition(window.getSize().x / 2.f,
-                             window.getSize().y / 2.f);
+    highScoreText.setFont(font);
+    highScoreText.setCharacterSize(22);
+    highScoreText.setFillColor(Color::Yellow);
+    highScoreText.setString("High Score: 0");
+
+    FloatRect hsBounds = highScoreText.getLocalBounds();
+    highScoreText.setOrigin(
+        hsBounds.left + hsBounds.width / 2.f,
+        hsBounds.top + hsBounds.height / 2.f
+    );
+    highScoreText.setPosition(
+        window.getSize().x / 2.f,
+        window.getSize().y / 2.f - 20.f
+    );
+
+    playButton.setSize({200.f, 60.f});
+    playButton.setFillColor(Color::Green);
+    playButton.setOrigin(playButton.getSize() / 2.f);
+    playButton.setPosition(window.getSize().x / 2.f, 300.f);
+
+    playText.setFont(font);
+    playText.setString("JOGAR");
+    playText.setCharacterSize(28);
+    playText.setFillColor(Color::Black);
+
+    FloatRect playBounds = playText.getLocalBounds();
+    playText.setOrigin(
+        playBounds.left + playBounds.width / 2.f,
+        playBounds.top + playBounds.height / 2.f
+    );
+    playText.setPosition(playButton.getPosition());
+
+    restartButton.setSize({220.f, 60.f});
+    restartButton.setFillColor(Color::White);
+    restartButton.setOrigin(restartButton.getSize() / 2.f);
+    restartButton.setPosition(
+        window.getSize().x / 2.f,
+        window.getSize().y / 2.f + 80.f
+    );
+
+    restartText.setFont(font);
+    restartText.setString("RESTART");
+    restartText.setCharacterSize(24);
+    restartText.setFillColor(Color::Black);
+
+    FloatRect restartBounds = restartText.getLocalBounds();
+    restartText.setOrigin(
+        restartBounds.left + restartBounds.width / 2.f,
+        restartBounds.top + restartBounds.height / 2.f
+    );
+    restartText.setPosition(restartButton.getPosition());
+
+    screenState = ScreenState::MENU;
+}
+
+void Game::resetGame()
+{
+    entities.clear();
+    sliceEntities.clear();
+
+    state.reset();
 
     for (int i = 0; i < MAX_ENTITIES; i++)
         spawnEntity();
@@ -69,23 +132,47 @@ void Game::processEvents()
     sf::Event event;
     while (window.pollEvent(event))
     {
-        if (gameOver)
+        if (event.type == Event::Closed)
+            window.close();
+
+        if (screenState == ScreenState::MENU)
         {
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (event.type == Event::MouseButtonPressed)
+            {
+                Vector2f mouse(event.mouseButton.x, event.mouseButton.y);
+
+                if (playButton.getGlobalBounds().contains(mouse))
+                {
+                    screenState = ScreenState::PLAYING;
+                    resetGame();
+                }
+            }
 
             continue;
         }
 
-        if (event.type == Event::Closed)
-            window.close();
+        if (screenState == ScreenState::GAME_OVER)
+        {
+            if (event.type == Event::MouseButtonPressed)
+            {
+                Vector2f mouse(event.mouseButton.x, event.mouseButton.y);
+
+                if (restartButton.getGlobalBounds().contains(mouse))
+                {
+                    screenState = ScreenState::PLAYING;
+                    resetGame();
+                }
+            }
+
+            continue;
+        }
 
         if (event.type == Event::MouseMoved && Mouse::isButtonPressed(Mouse::Left))
             isMouseMovedPressed = true;
         else
             isMouseMovedPressed = false;
 
-        if (!gameOver && isMouseMovedPressed &&
+        if (isMouseMovedPressed &&
             clkSliceSp.getElapsedTime().asSeconds() >= 0.005f &&
             sliceEntities.size() <= MAX_SLICEENTITIES)
         {
@@ -100,12 +187,8 @@ void Game::update()
     static Clock clock;
     float dt = clock.restart().asSeconds();
 
-    if (gameOver)
-    {
-        scoreText.setString("Score: " + std::to_string(state.getScore()));
-        livesText.setString("Lives: " + std::to_string(state.getLives()));
+    if (screenState != ScreenState::PLAYING)
         return;
-    }
 
     if (clkSliceDlt.getElapsedTime().asSeconds() >= 0.005f &&
         !isMouseMovedPressed && sliceEntities.size() > 1)
@@ -138,7 +221,21 @@ void Game::update()
 
                         if (state.isGameOver())
                         {
-                            gameOver = true;
+                            highScoreText.setString(
+                                "High Score: " + std::to_string(state.getHighScore())
+                            );
+
+                            FloatRect hsBounds = highScoreText.getLocalBounds();
+                            highScoreText.setOrigin(
+                                hsBounds.left + hsBounds.width / 2.f,
+                                hsBounds.top + hsBounds.height / 2.f
+                            );
+                            highScoreText.setPosition(
+                                window.getSize().x / 2.f,
+                                window.getSize().y / 2.f - 20.f
+                            );
+
+                            screenState = ScreenState::GAME_OVER;
                         }
                     }
                 }
@@ -160,7 +257,23 @@ void Game::update()
                                    state.loseLife();
 
                                    if (state.isGameOver())
-                                       gameOver = true;
+                                   {
+                                       highScoreText.setString(
+                                           "High Score: " + std::to_string(state.getHighScore())
+                                       );
+
+                                       FloatRect hsBounds = highScoreText.getLocalBounds();
+                                       highScoreText.setOrigin(
+                                           hsBounds.left + hsBounds.width / 2.f,
+                                           hsBounds.top + hsBounds.height / 2.f
+                                       );
+                                       highScoreText.setPosition(
+                                           window.getSize().x / 2.f,
+                                           window.getSize().y / 2.f - 20.f
+                                       );
+
+                                       screenState = ScreenState::GAME_OVER;
+                                   }
                                }
                            }
 
@@ -213,7 +326,8 @@ void Game::update()
 
                     currentSlice->setPosition(
                         posAnterior.x + dx * maxDistance,
-                        posAnterior.y + dy * maxDistance);
+                        posAnterior.y + dy * maxDistance
+                    );
                 }
             }
         }
@@ -227,6 +341,31 @@ void Game::render()
 {
     window.clear();
 
+    if (screenState == ScreenState::MENU)
+    {
+        window.draw(playButton);
+        window.draw(playText);
+        window.display();
+        return;
+    }
+
+    if (screenState == ScreenState::GAME_OVER)
+    {
+        for (auto &e : entities)
+            e->render(window);
+
+        for (auto &s : sliceEntities)
+            s->render(window);
+
+        window.draw(gameOverText);
+        window.draw(restartButton);
+        window.draw(restartText);
+        window.draw(highScoreText);
+
+        window.display();
+        return;
+    }
+
     for (auto &e : entities)
         e->render(window);
 
@@ -235,9 +374,6 @@ void Game::render()
 
     window.draw(scoreText);
     window.draw(livesText);
-
-    if (gameOver)
-        window.draw(gameOverText);
 
     window.display();
 }
