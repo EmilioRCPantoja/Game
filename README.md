@@ -120,6 +120,7 @@ include/
 src/
  ├── Game.cpp
  ├── GameState.cpp
+ ├── main.cpp
  ├── Entity/
 assets/
  ├── fonts/
